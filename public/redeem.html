@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Claw-Mart Rewards Redemption</title>
+
+<style>
+  body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #ffe3f4, #d5f3ff);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+  }
+
+  .redeem-wrapper {
+    background: rgba(255,255,255,0.97);
+    border-radius: 36px;
+    padding: 48px;
+    max-width: 720px;
+    width: 95%;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.18);
+    text-align: center;
+    margin: 40px auto;
+  }
+
+  .redeem-logo {
+    background: linear-gradient(90deg, #ff9ed6, #aeeaff);
+    height: 130px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 22px;
+    margin-bottom: 36px;
+    box-shadow: inset 0 0 8px rgba(255,255,255,0.6),
+                0 4px 14px rgba(0,0,0,0.08);
+  }
+
+  .redeem-logo img {
+    height: 110px;
+    width: auto;
+    max-width: 90%;
+    object-fit: contain;
+  }
+
+  h2 {
+    color: #e74cc7;
+    font-size: 2rem;
+    margin-bottom: 12px;
+  }
+
+  p {
+    color: #555;
+    font-size: 1.1rem;
+    margin-bottom: 28px;
+  }
+
+  .balance {
+    background: #fff;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 32px;
+    font-weight: 600;
+    font-size: 1.05rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+
+  .prize-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 24px;
+    margin-bottom: 40px;
+  }
+
+  .prize-card {
+    background: linear-gradient(135deg, #fafcff, #f6f1ff);
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: inset 0 0 8px rgba(0,0,0,0.05);
+    cursor: pointer;
+    transition: all 0.25s ease-in-out;
+  }
+
+  .prize-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 10px 22px rgba(255,105,180,0.25);
+  }
+
+  .prize-card.active {
+    border: 3px solid #ff66cc;
+    background: linear-gradient(135deg, #ffe0f3, #d5f3ff);
+  }
+
+  .prize-name {
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #333;
+    font-size: 1.1rem;
+  }
+
+  .coin-cost {
+    font-size: 0.95rem;
+    color: #777;
+  }
+
+  .cta-btn {
+    display: block;
+    width: 100%;
+    min-height: 60px;
+    padding: 16px;
+    font-weight: 700;
+    font-size: 1.25rem;
+    border-radius: 18px;
+    color: #fff;
+    background: linear-gradient(135deg, #ff66cc, #2bd9fe);
+    box-shadow: 0 8px 24px rgba(255,105,180,0.35);
+    transition: all 0.3s ease-in-out;
+    margin-bottom: 20px;
+    border: none;
+    cursor: pointer;
+  }
+
+  .cta-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 12px 28px rgba(255,105,180,0.45);
+  }
+
+  .secondary-btn {
+    background: linear-gradient(135deg, #aeeaff, #baf0c4);
+    color: #333;
+  }
+
+  small {
+    display: block;
+    margin-top: 20px;
+    font-size: 0.9rem;
+    color: #777;
+  }
+</style>
+</head>
+<body>
+
+<div class="redeem-wrapper">
+  <div class="redeem-logo">
+    <img src="https://storage.googleapis.com/msgsndr/0zjFvbYYAXHcGgcF6d0k/media/6908ee536b7a577d658c73d2.jpeg" alt="Claw Mart">
+  </div>
+
+  <h2>Redeem Your Rewards 🎁</h2>
+  <p>Choose a prize below and use your coins to claim it instantly!</p>
+
+  <div class="balance">
+    Your Balance: <strong>{{contact.custom.Coins_Balance}} Coins</strong>
+  </div>
+
+  <div class="prize-grid" id="prizeGrid">
+    <!-- Cards will be inserted here by JS -->
+  </div>
+
+  <button class="cta-btn" id="redeemBtn">Confirm Redemption</button>
+  <button class="cta-btn secondary-btn" onclick="alert('Back to dashboard placeholder')">
+    ⬅ Back to Dashboard
+  </button>
+
+  <small>Your new balance will update automatically after redemption.</small>
+</div>
+
+<script>
+  const prizeGrid = document.getElementById("prizeGrid");
+  let selected = null;
+
+  // Load reward options from YOUR proxy (not GHL directly)
+  async function loadRewards() {
+    try {
+      const res = await fetch("/ghl/rewards");
+      const data = await res.json();
+      const options = data.options || [];
+
+      if (!options.length) {
+        prizeGrid.innerHTML = "<p>No rewards available.</p>";
+        return;
+      }
+
+      options.forEach(opt => {
+        const cost = getCoinCost(opt);
+
+        const card = document.createElement("div");
+        card.className = "prize-card";
+        card.dataset.item = opt;
+        card.dataset.cost = cost;
+        card.innerHTML = `
+          <div class="prize-name">${opt}</div>
+          <div class="coin-cost">Cost: ${cost} Coins</div>
+        `;
+
+        card.addEventListener("click", () => {
+          document
+            .querySelectorAll(".prize-card")
+            .forEach(c => c.classList.remove("active"));
+          card.classList.add("active");
+          selected = { item: opt, cost };
+        });
+
+        prizeGrid.appendChild(card);
+      });
+    } catch (err) {
+      console.error("Reward load error:", err);
+      prizeGrid.innerHTML =
+        "<p>⚠️ Unable to load rewards. Please refresh or contact staff.</p>";
+    }
+  }
+
+  // Map reward name -> coin cost (customize this however you want)
+  function getCoinCost(name) {
+    const map = {
+      "Labubu Special Edition": 200,
+      "Mystery Blind Box": 150,
+      "Clawcade Hat": 100,
+      "Clawcade Hoodie": 180
+    };
+    return map[name] || 50;
+  }
+
+  document.getElementById("redeemBtn").addEventListener("click", () => {
+    if (!selected) {
+      alert("Please select a prize first!");
+      return;
+    }
+    alert(`You redeemed: ${selected.item} for ${selected.cost} coins!`);
+    // next step: call another proxy endpoint to update contact in GHL
+  });
+
+  loadRewards();
+</script>
+
+</body>
+</html>
